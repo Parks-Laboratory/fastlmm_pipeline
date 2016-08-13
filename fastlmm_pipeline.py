@@ -82,30 +82,6 @@ def make_intervals(tasks):
     intervals.append((begin, end))
     return intervals
 
-
-# function to write to file what snps were filtered in/out from each chrom
-def filter_chroms(prefix, chroms):
-    f = open('%s.bim' % prefix)
-    included = dict(zip(chroms, [open(os.path.join(dataLoc, prefix, 'filtered.snp_ids.chr.%s.included.txt' % ch), 'w')  for ch in chroms]))
-    excluded = dict(zip(chroms, [open(os.path.join(dataLoc, prefix, 'filtered.snp_ids.chr.%s.excluded.txt' % ch), 'w')  for ch in chroms]))
-
-    for n_snps, line in enumerate(f, start=1):
-        ch, snp_id = line.strip().split('\t')[:2]
-        included[ch].write('%s\n' %snp_id)
-        for k in set(chroms).difference([ch]):
-            excluded[k].write('%s\n' % snp_id)
-
-    f.close()
-
-    for chrom in chroms:
-        included[chrom].close()
-        excluded[chrom].close()
-
-    sentinel = open('%s.filtered' % prefix, 'w')
-    sentinel.close()
-    return n_snps
-
-
 # function to make sure that fids and iids match across files
 def check_fids_iids(prefix):
     def get_fids_iids(fn, skip=0):
@@ -173,15 +149,9 @@ def populate_available(dataLoc, numeric, species, maxthreads, memory):
                 cmd = cmd_template % locals()
                 log.send_output(cmd)
                 subprocess.check_call(cmd, shell=True, stderr=subprocess.STDOUT)
-            
-            if not os.path.exists(os.path.join(dataLoc, tfile_prefix)):
-                try:
-                    os.makedirs(os.path.join(dataLoc, tfile_prefix))
-                except OSError:
-                    pass
-
+        
             chroms = map(str, range(1, species_chroms[species] + 1))
-            n_snps = filter_chroms(tfile_prefix, chroms)
+            n_snps = int( subprocess.Popen(['wc', '-l', os.path.join(dataLoc, '%s.bim' % tfile_prefix)], stdout=subprocess.PIPE).communicate()[0].split()[0] )
 
         sys.stdout.flush()
 
@@ -205,7 +175,7 @@ def populate_available(dataLoc, numeric, species, maxthreads, memory):
             # check that phenotypes exist and have unique names
             if not problematic and headers and len(set(headers)) == len(headers):
                 # create phenotype key file for later reference
-                f = open(os.path.join(dataLoc, tfile_prefix, 'pheno.key.txt'), 'w')
+                f = open(os.path.join(dataLoc, 'pheno.key.txt'), 'w')
                 fmt = '%%0%sd' % int(ceil(log10(len(headers))))
                 f.write( '\n'.join(['%s\t%s' % (fmt % i, phen) for i, phen in enumerate(headers)]) )
                 f.close()
@@ -243,11 +213,11 @@ def populate_available(dataLoc, numeric, species, maxthreads, memory):
 
 
 # function to submit to clusters
-def process_all(covar=False, memory=1024, check=False, igv=False, species='mouse', maxthreads=1, featsel=False, exclude=False, condition=None):
+def process_all(covar=False, memory=1024, igv=False, species='mouse', maxthreads=1, featsel=False, exclude=False, condition=None):
     '''Processes all datasets'''
-    process(sorted(available_datasets.keys()), covar=covar, memory=memory, species=species, check=check, igv=igv, maxthreads=maxthreads, featsel=featsel, exclude=exclude, condition=condition)
+    process(sorted(available_datasets.keys()), covar=covar, memory=memory, species=species, igv=igv, maxthreads=maxthreads, featsel=featsel, exclude=exclude, condition=condition)
 
-def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', check=False, igv=False, maxthreads=1, featsel=False, exclude=False, condition=None):
+def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', igv=False, maxthreads=1, featsel=False, exclude=False, condition=None):
 
     os.chdir(root)
 
@@ -272,10 +242,10 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', che
     request_disk = 1GB
 
     queue %(n_pheno)s
-    ''')
+    ''').replace('\t*', '')
 
-    exec_template = textwrap.dedent(
-    '''#!/bin/bash
+    exec_template = textwrap.dedent('''
+    #!/bin/bash
 
     # untar your Python installation
     tar -xzvf python.tar.gz
@@ -291,7 +261,7 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', che
 
     # remove temporary folder
     rm -r work
-    ''')
+    ''').replace('\t*', '')
 
     submission_cmd = 'condor_submit fast_lmm.sub'
 
@@ -392,15 +362,6 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', che
 
                 log.send_output("%s finished at %s" % (params['dataset'], timestamp()))
 
-                # merge outputs (this only really merges the bcp files)
-                numeric_opt = params['numeric']
-                check_opt = ['', '-c'][check]
-                igv_opt = ['', '-i'][igv]
-                v = globals()
-                v.update(locals())
-                
-                subprocess.call('python %(merge_script)s -m %(total_memory)s %(numeric_opt)s %(check_opt)s %(igv_opt)s  %(job_output)s' % v, shell = True)
-
 
 if __name__ == '__main__':
     import argparse
@@ -429,8 +390,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--numeric_phenotype_id', dest='numeric', help='convert phenotype names to numbers (for safety)',
                         nargs='?', default=0, const=1, type=int, action='store', choices=[0, 1, 2])
     # todo: add option to use numeric filenames for safety but encode phenotype names as varchar in the output files
-    parser.add_argument('--check-file-sizes', dest='check', help='check file sizes of binary output files when deciding if job is finished running',
-                        default=False, action='store_true')
+
     parser.add_argument('-i', '--igv-output', dest='igv', help='create .gwas files that can be loaded into the Broad Institute\'s Integrative Genomics Viewer (IGV)',
                         default=True, action='store_true')
     parser.add_argument('-q', '--quiet', dest='debug', help="suppress debugging output",
@@ -447,15 +407,14 @@ if __name__ == '__main__':
     covFile = args.covFile
     memory = args.memory
     datasets = args.dataset
-    numeric = args.numeric
+    numeric = args.numeric # TODO
     species = args.species.lower()
     maxthreads = args.maxthreads
     featsel = args.featsel
     exclude = args.exclude
     debug = args.debug
-    tasks = args.tasks
-    check = args.check # can i use this to check?
-    igv = args.igv
+    tasks = args.tasks # TODO
+    igv = args.igv # TODO
     condition = args.condition
 
     if debug:
@@ -480,10 +439,10 @@ if __name__ == '__main__':
     else:
         if datasets:
             log.send_output('\n'.join(sorted(datasets)))
-            process(sorted(datasets), covFile, memory, tasks, check=check, igv=igv, species=species, featsel=featsel, exclude=exclude, condition=condition)
+            process(sorted(datasets), covFile, memory, tasks, igv=igv, species=species, featsel=featsel, exclude=exclude, condition=condition)
         else:
             log.send_output('\n'.join(sorted(available_datasets.keys())))
-            process_all(covFile, memory, check, igv, species=species, featsel=featsel, exclude=exclude, condition=condition)
+            process_all(covFile, memory, igv, species=species, featsel=featsel, exclude=exclude, condition=condition)
 
     log.close()
 

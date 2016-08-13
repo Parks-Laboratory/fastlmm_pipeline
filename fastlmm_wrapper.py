@@ -85,8 +85,7 @@ def run_fastlmmc(dataset, output_dir, pheno_index, covFile=None, numeric=0, igv=
     v.update(locals())
     
     # loop through chromosomes and run
-    if not os.path.exists('%(output_dir)s/%(phenotype_name)s.bcp' % v) and not os.path.exists('%(output_dir)s/%(phenotype_name)s.gwas' % v):
-        for i, chrom in enumerate(chroms):
+    for i, chrom in enumerate(chroms):
             
         # separate by chromosome for LOOCV
         test_snps = snp_reader[:, snp_reader.pos[:,0] == int(chrom)]
