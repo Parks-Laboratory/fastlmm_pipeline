@@ -5,7 +5,7 @@
 1. add files (tfam, tped, pheno, covar) to the **fastlmm/data/** directory  
 2. copy **fixpheno.sh** file into the **fastlmm/data/** directory  
 3. run the command `sh fixpheno.sh PREFIX` where PREFIX is the actual prefix for the data set  
-4. move to the **fastlmm/ **directory  
+4. move to the **fastlmm/** directory  
 5. run the command `python fastlmm_pipeline.py --covar` (with additional arguments as necessary)  
 	Note: for a detailed list of additional arguments, run the command `python fastlmm_pipeline.py -h`  
 6. wait while pipeline runs  
