@@ -119,15 +119,12 @@ def check_fids_iids(prefix):
 
 
 # function to run plink
-def populate_available(dataLoc, numeric, species, maxthreads, memory):
+def populate_available(dataLoc, numeric, species):
     os.chdir(dataLoc)
     candidates = [x for x in os.listdir(dataLoc) if x.endswith(('.tped', '.tfam', '.pheno.txt', '.covar.txt'))]
     tped, tfam, pheno, covar = map(lambda suffix:set([x.replace(suffix, '') for x in candidates if x.endswith(suffix)]), ['.tped', '.tfam', '.pheno.txt', '.covar.txt'])
     geno = set(tped).intersection(set(tfam))
     plink_species = ['', '--%s' % species][species != 'human']
-
-    if memory is None:
-        memory = 4096
 
     for tfile_prefix in geno:
         sentinel = os.path.join(dataLoc, '%s.filtered' % tfile_prefix)
@@ -213,22 +210,23 @@ def populate_available(dataLoc, numeric, species, maxthreads, memory):
 
 
 # function to submit to clusters
-def process_all(covar=False, memory=1024, igv=False, species='mouse', maxthreads=1, featsel=False, exclude=False, condition=None):
+def process_all(covar=False, memory=1024, species='mouse', maxthreads=1, featsel=False, exclude=False, condition=None):
     '''Processes all datasets'''
-    process(sorted(available_datasets.keys()), covar=covar, memory=memory, species=species, igv=igv, maxthreads=maxthreads, featsel=featsel, exclude=exclude, condition=condition)
+    process(sorted(available_datasets.keys()), covar=covar, memory=memory, species=species, maxthreads=maxthreads, featsel=featsel, exclude=exclude, condition=condition)
 
-def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', igv=False, maxthreads=1, featsel=False, exclude=False, condition=None):
+def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', maxthreads=1, featsel=False, exclude=False, condition=None):
 
     os.chdir(root)
 
     # submit and executable files
-    submit_template = textwrap.dedent('''
-    # FastLMM Submit File
+    submit_template = textwrap.dedent(
+    '''# FastLMM Submit File
 
     universe = vanilla
     log = %(condor_output)s/fastlmm_$(Cluster).log
     error = %(condor_output)s/fastlmm_$(Cluster)_$(Process).err
 
+    InitialDir = %(root)s/results/%(dataset)s
     executable = %(root)s/fastlmm_%(dataset)s.sh
     arguments = $(Process)
     output = %(condor_output)s/fastlmm_$(Cluster)_$(Process).out
@@ -244,8 +242,8 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', igv
     queue %(n_pheno)s
     ''').replace('\t*', '')
 
-    exec_template = textwrap.dedent('''
-    #!/bin/bash
+    exec_template = textwrap.dedent(
+    '''#!/bin/bash
 
     # untar your Python installation
     tar -xzvf python.tar.gz
@@ -253,14 +251,8 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', igv
     # make sure the script will use your Python installation
     export PATH=$(pwd)/python/bin:$PATH
 
-    # set environment for script
-    mkdir work
-
     # run your script
     python fastlmm_wrapper.py %(covFile)s %(numeric)s %(igv)s %(debug)s %(species)s %(maxthreads)s %(feature_selection)s %(exclude)s %(condition)s %(dataset)s $1 >& fastlmm_wrapper.py.output.$1
-
-    # remove temporary folder
-    rm -r work
     ''').replace('\t*', '')
 
     submission_cmd = 'condor_submit fast_lmm.sub'
@@ -306,7 +298,6 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', igv
                            'condor_output': condor_output,
                            'covFile': ['', '-c %s' % params['covar']][covar and params['covar'] is not None],
                            'fastlmm_script': fastlmm_script,
-                           'igv':['', '--igv-output'][igv],
                            'debug': ['', '--debug'][debug],
                            'prog_path':prog_path,
                            'timestamp':datetime.ctime(datetime.now()),
@@ -344,23 +335,20 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', igv
                 log.send_output("%s was sent to cluster %s at %s" % (params['dataset'], condor_cluster, timestamp()))
 
                 # check when jobs are done
-                n_running = 1
-                while n_running > 0:
-                    check_status = subprocess.Popen(['condor_q'], stdout=subprocess.PIPE).communicate()[0]
-                    subprocess.call('condor_q', shell = True)
-                    n_running = check_status.count(condor_cluster)
-                    time.sleep(120)
+                #n_running = 1
+                #while n_running > 0:
+                    #check_status = subprocess.Popen(['condor_q'], stdout=subprocess.PIPE).communicate()[0]
+                    #subprocess.call('condor_q', shell = True)
+                    #n_running = check_status.count(condor_cluster)
+                    #time.sleep(120)
 
-                if igv:
-                    subprocess.call('mv *gwas %(job_output)s/' % params, shell = True)
-                else:
-                    subprocess.call('mv *bcp %(job_output)s' % params, shell = True)
-                subprocess.call('mv *output* %(condor_output)s' % params, shell = True)
+                #subprocess.call('mv *gwas %(job_output)s/' % params, shell = True)
+                #subprocess.call('mv *output* %(condor_output)s' % params, shell = True)
                 
-                subprocess.call('mv fastlmm*sub %(condor_output)s' % params, shell = True)
-                subprocess.call('mv fastlmm*sh %(condor_output)s' % params, shell = True)
+                #subprocess.call('mv fastlmm*sub %(condor_output)s' % params, shell = True)
+                #subprocess.call('mv fastlmm*sh %(condor_output)s' % params, shell = True)
 
-                log.send_output("%s finished at %s" % (params['dataset'], timestamp()))
+                #log.send_output("%s finished at %s" % (params['dataset'], timestamp()))
 
 
 if __name__ == '__main__':
@@ -389,10 +377,7 @@ if __name__ == '__main__':
                         default=False, action='store_true')
     parser.add_argument('-n', '--numeric_phenotype_id', dest='numeric', help='convert phenotype names to numbers (for safety)',
                         nargs='?', default=0, const=1, type=int, action='store', choices=[0, 1, 2])
-    # todo: add option to use numeric filenames for safety but encode phenotype names as varchar in the output files
 
-    parser.add_argument('-i', '--igv-output', dest='igv', help='create .gwas files that can be loaded into the Broad Institute\'s Integrative Genomics Viewer (IGV)',
-                        default=True, action='store_true')
     parser.add_argument('-q', '--quiet', dest='debug', help="suppress debugging output",
                         default=True, action='store_false')
     parser.add_argument('dataset', metavar='dataset', nargs='*', type=str, help='dataset(s) to process')
@@ -407,14 +392,13 @@ if __name__ == '__main__':
     covFile = args.covFile
     memory = args.memory
     datasets = args.dataset
-    numeric = args.numeric # TODO
+    numeric = args.numeric 
     species = args.species.lower()
     maxthreads = args.maxthreads
     featsel = args.featsel
     exclude = args.exclude
     debug = args.debug
-    tasks = args.tasks # TODO
-    igv = args.igv # TODO
+    tasks = args.tasks 
     condition = args.condition
 
     if debug:
@@ -428,7 +412,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     log.send_output('Searching for raw data in %s' % dataLoc)
-    populate_available(dataLoc, numeric, species, maxthreads, memory)
+    populate_available(dataLoc, numeric, species)
 
     if list_data:
         log.send_output('\nAvailable datasets:')
@@ -439,10 +423,10 @@ if __name__ == '__main__':
     else:
         if datasets:
             log.send_output('\n'.join(sorted(datasets)))
-            process(sorted(datasets), covFile, memory, tasks, igv=igv, species=species, featsel=featsel, exclude=exclude, condition=condition)
+            process(sorted(datasets), covFile, memory, tasks, species=species, featsel=featsel, exclude=exclude, condition=condition)
         else:
             log.send_output('\n'.join(sorted(available_datasets.keys())))
-            process_all(covFile, memory, igv, species=species, featsel=featsel, exclude=exclude, condition=condition)
+            process_all(covFile, memory, species=species, featsel=featsel, exclude=exclude, condition=condition)
 
     log.close()
 

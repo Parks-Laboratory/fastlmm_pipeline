@@ -15,7 +15,12 @@ def get_genotypes(strains, iids, output_fn):
 
     outfile = open(output_fn, 'w')
     c = pyodbc.connect('SERVER=PARKSLAB;DATABASE=HMDP;Trusted_Connection=Yes;DRIVER={SQL Server}')
-    q = query_template % ', '.join(['[%s]' % x for x in strains])
+    
+    ori = c.execute('select top 1 * from HMDP.dbo.genotype_calls_plink_format')
+    for row in ori:
+        cols = [t[0] for t in row.cursor_description]
+
+    q = query_template % ', '.join(['[%s]' % x for x in strains if x in cols])
     res = c.execute(q)
     tfam = 0
     linebuffer = []
