@@ -29,7 +29,6 @@ job_output_root = os.path.join(root, 'results')
 # script locations
 prog_path = os.path.join(root, 'scripts')
 fastlmm_script = os.path.join(prog_path, 'fastlmm_wrapper.py')
-merge_script = os.path.join(prog_path, 'merge_fastlmm_output.py')
 plink_script = os.path.join(prog_path, 'plink')
 
 
@@ -252,10 +251,9 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', max
     export PATH=$(pwd)/python/bin:$PATH
 
     # run your script
-    python fastlmm_wrapper.py %(covFile)s %(numeric)s %(igv)s %(debug)s %(species)s %(maxthreads)s %(feature_selection)s %(exclude)s %(condition)s %(dataset)s $1 >& fastlmm_wrapper.py.output.$1
+    python fastlmm_wrapper.py %(covFile)s %(numeric)s %(debug)s %(species)s %(maxthreads)s %(feature_selection)s %(exclude)s %(condition)s %(dataset)s $1 >& fastlmm_wrapper.py.output.$1
     ''').replace('\t*', '')
 
-    submission_cmd = 'condor_submit fast_lmm.sub'
 
     # generate submit files and submit to cluster
     for dataset in datasets:
@@ -333,22 +331,6 @@ def process(datasets, covar=False, memory=1024, tasks=None, species='mouse', max
                 condor_cluster = re.search('\d{4,}', condor_cluster).group()
                 print("Submitting Jobs to Cluster %s" % condor_cluster)
                 log.send_output("%s was sent to cluster %s at %s" % (params['dataset'], condor_cluster, timestamp()))
-
-                # check when jobs are done
-                #n_running = 1
-                #while n_running > 0:
-                    #check_status = subprocess.Popen(['condor_q'], stdout=subprocess.PIPE).communicate()[0]
-                    #subprocess.call('condor_q', shell = True)
-                    #n_running = check_status.count(condor_cluster)
-                    #time.sleep(120)
-
-                #subprocess.call('mv *gwas %(job_output)s/' % params, shell = True)
-                #subprocess.call('mv *output* %(condor_output)s' % params, shell = True)
-                
-                #subprocess.call('mv fastlmm*sub %(condor_output)s' % params, shell = True)
-                #subprocess.call('mv fastlmm*sh %(condor_output)s' % params, shell = True)
-
-                #log.send_output("%s finished at %s" % (params['dataset'], timestamp()))
 
 
 if __name__ == '__main__':

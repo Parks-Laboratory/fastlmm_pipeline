@@ -43,14 +43,12 @@ def run_fastlmmc(dataset, output_dir, pheno_index, covFile=None, species='mouse'
     snp_reader = Bed(bfile)
 
     pheno_file = loadOnePhen('%s.pheno.txt' % dataset, i_pheno = pheno_index)
-    phenotype_name = pheno_file['header'][0] TODO
+    phenotype_name = pheno_file['header'][0] 
 
     v = globals()
     chroms = map(str, range(1, species_chroms[species] + 1))
     v.update(locals())
     
-        
-    else:
     # loop through chromosomes and run
     for i, chrom in enumerate(chroms):
             
@@ -60,9 +58,9 @@ def run_fastlmmc(dataset, output_dir, pheno_index, covFile=None, species='mouse'
 
         # run snp with covar
         if covFile:
-            df = single_snp(test_snps = test_snps, pheno = pheno, K0 = mat_snps, covar = covFile)
+            df = single_snp(test_snps = test_snps, pheno = pheno_file, K0 = mat_snps, covar = covFile)
         else:
-            df = single_snp(test_snps = test_snps, pheno = pheno, K0 = mat_snps)
+            df = single_snp(test_snps = test_snps, pheno = pheno_file, K0 = mat_snps)
 
         # format outputs
         out_df = df.loc[:, ['SNP', 'Chr', 'ChrPos', 'PValue', 'SnpWeight']]
