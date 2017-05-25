@@ -239,7 +239,7 @@ def submit_jobs(params):
 	log.send_output("%s was sent to cluster %s at %s" % (params['dataset'], condor_cluster, timestamp()))
 
 def get_num_jobs_to_run(params):
-	with open(os.path.join(params['dataLoc'], params['dataset'], '.pheno.txt')) as f:
+	with open(os.path.join(params['dataLoc'], params['dataset'] +  '.pheno.txt')) as f:
 		# one job for every column in pheno file, excluding FID, IID columns
 		return len(f.readline().split()) - 2
 
@@ -319,7 +319,7 @@ if __name__ == '__main__':
 		help='run only specified sub-tasks (specify only one dataset when using this option)', type=int)
 	parser.add_argument('--condition', dest='condition',
 		help='condition on SNP {snp_id}', action='store', nargs=1)
-	parser.add_argument('--rerun', dest='jobs_to_rerun_filename', default=''
+	parser.add_argument('--rerun', dest='jobs_to_rerun_filename', default='',
 		help='file name containing list of process/job numbers to run', action = 'store')
 
 
@@ -341,7 +341,6 @@ if __name__ == '__main__':
 	debug = args.debug
 	tasks = args.tasks
 	condition = args.condition
-	group_size = args.group_size
 	jobs_to_rerun_filename = args.jobs_to_rerun_filename
 
 
@@ -380,7 +379,6 @@ if __name__ == '__main__':
 		'root': root,
 		'dataLoc': dataLoc,
 		'dataset': dataset,
-		'group_size': group_size,
 		'offset': 0,
 		'job_output': os.path.join(job_output_root, dataset),
 		'condor_output': os.path.join(condor_output_root, dataset),
