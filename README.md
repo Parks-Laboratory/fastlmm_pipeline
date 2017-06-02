@@ -6,7 +6,7 @@
 ## Step 1: Filtering markers, making pheno file (epistasis_local.py)
 This pipeline runs with the same inputs as [the epistasis pipeline](https://github.com/Parks-Laboratory/epistasis_pipeline), so just follow the directions in [Step 1 of the epistasis pipeline](https://github.com/Parks-Laboratory/epistasis_pipeline/blob/redesign/master/README.md#step-1-filtering-markers-making-pheno-file-epistasis_localpy)
 
-## Step 2: Preparing files for transfer, submit jobs (fastlmm_submit.py)
+## Step 2: Preparing files for transfer, submitting jobs (fastlmm_submit.py)
 1. scp **data/**, **scripts/**, **fastlmm_submit.py** to submit server
 	* **data/** contains
 		**_prefix_.FILTERED.bim**,
