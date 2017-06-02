@@ -74,7 +74,7 @@ def write_submission_file(params, flags):
 	log = %(condor_output)s/fastlmm_$(Cluster).log
 	error = %(condor_output)s/fastlmm_$(Cluster)_$(Process).err
 
-	InitialDir = %(root)s/results/%(dataset)s
+	InitialDir = %(root)s/fastlmm_results/%(dataset)s
 	executable = %(root)s/%(executable_filename)s
 	arguments = $(Process) %(offset)s
 	output = %(condor_output)s/fastlmm_$(Cluster)_$(Process).out
