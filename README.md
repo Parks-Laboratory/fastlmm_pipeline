@@ -1,5 +1,5 @@
 # FastLMM Pipeline
-[Documentation](http://microsoftgenomics.github.io/FaST-LMM/)
+[Documentation](http://microsoftgenomics.github.io/FaST-LMM/#single-snp)
 
 ## Running the FASTLMM Pipeline on UW-Madison Clusters
 
