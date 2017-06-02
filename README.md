@@ -29,6 +29,6 @@ This pipeline runs with the same inputs as [the epistasis pipeline](https://gith
 * SQUID directory (CHTC uses uses this to transfer large files)
 
 ## Re-running jobs
-The process is exactly the same as when [rerunning epistasis jobs](https://github.com/Parks-Laboratory/epistasis_pipeline/blob/redesign/master/README.md#re-running-jobs). 
+The process is exactly the same as when [re-running epistasis jobs](https://github.com/Parks-Laboratory/epistasis_pipeline/blob/redesign/master/README.md#re-running-jobs). 
 
 Usage: Call **fastlmm_submit.py** with **--rerun _file_with_jobs_to_rerun_**, and whatever other flags and parameters are necessary to ensure these jobs succeed. Be careful not to change inputs/parameters in such a way that the failed-job number(s) wind up mapping to different work.
