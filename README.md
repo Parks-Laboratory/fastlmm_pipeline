@@ -22,6 +22,10 @@ This pipeline runs with the same inputs as [the epistasis pipeline](https://gith
 	Use `ls results/<prefix> | wc -l` to check the current returned file numbers
 1. run the following command on local machine: `scp -r <CONDOR_ADDRESS>:results <destination_directory_at_Parks_Lab>`
 
+## Requirements
+* CHTC account
+* SQUID directory (CHTC uses uses this to transfer large files)
+
 ## Re-running jobs
 The process is exactly the same as when [rerunning epistasis jobs](https://github.com/Parks-Laboratory/epistasis_pipeline/blob/redesign/master/README.md#re-running-jobs). 
 
