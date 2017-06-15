@@ -8,10 +8,10 @@ import argparse
 # Create parser to receive instructions from command line
 parser = argparse.ArgumentParser(description = 'Input arguments to populate database')
 # Argument to create table and whether to create new table
-parser.add_argument('-t', '--tablename', action = 'store', help = "Table for inserting data", default = "test")
+parser.add_argument('tablename', action = 'store', help = "Table for inserting data")
 parser.add_argument('-c', '--create', action = 'store_true', help = "Create table", default= False) 
 # Argument to specify path
-parser.add_argument('-p', '--path', action = 'store', help = "Directory path with txt file", default="E:/Users/wsthum")
+parser.add_argument('-p', '--path', action = 'store', help = "Directory path with txt file", default=".")
 # Argument to specify database
 parser.add_argument('-db', '--database', action = 'store', help="Database to be opened", default = "Epistasis")
 # Parse all the the arguments together
