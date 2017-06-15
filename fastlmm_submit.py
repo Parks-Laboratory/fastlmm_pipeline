@@ -24,8 +24,8 @@ debug = False
 # input/output folders
 root = os.path.split(os.path.realpath(sys.argv[0]))[0]
 dataLoc = os.path.join(root, 'data')
-condor_output_root = os.path.join(root, 'condor_out')
-job_output_root = os.path.join(root, 'results')
+condor_output_root = os.path.join(root, 'fastlmm_condor_out')
+job_output_root = os.path.join(root, 'fastlmm_results')
 
 # script locations
 prog_path = os.path.join(root, 'scripts')
@@ -74,7 +74,7 @@ def write_submission_file(params, flags):
 	log = %(condor_output)s/fastlmm_$(Cluster).log
 	error = %(condor_output)s/fastlmm_$(Cluster)_$(Process).err
 
-	InitialDir = %(root)s/results/%(dataset)s
+	InitialDir = %(root)s/fastlmm_results/%(dataset)s
 	executable = %(root)s/%(executable_filename)s
 	arguments = $(Process) %(offset)s
 	output = %(condor_output)s/fastlmm_$(Cluster)_$(Process).out
@@ -88,10 +88,7 @@ def write_submission_file(params, flags):
 	request_disk = 2GB
 
 	# if Condor puts job on hold, retry every 5 minutes, up to 4 times
-	periodic_release = ( NumSystemHolds <= ((NumGlobusSubmits * 4) + 4) ) \
-		&& (NumGlobusSubmits < 4) && \
-		( HoldReason != "via condor_hold (by user $ENV(USER))" ) && \
-		((time() - EnteredCurrentStatus) > ( NumSystemHolds *60*5 ))
+	periodic_release = ( NumSystemHolds <= 4 ) && ( time() - EnteredCurrentStatus > 60 )
 
 	# set number of times to re-run a job if script returns non-zero exit code
 	max_retries=3
@@ -239,7 +236,7 @@ def submit_jobs(params):
 	log.send_output("%s was sent to cluster %s at %s" % (params['dataset'], condor_cluster, timestamp()))
 
 def get_num_jobs_to_run(params):
-	with open(os.path.join(params['dataLoc'], params['dataset'], '.pheno.txt')) as f:
+	with open(os.path.join(params['dataLoc'], params['dataset'] +  '.pheno.txt')) as f:
 		# one job for every column in pheno file, excluding FID, IID columns
 		return len(f.readline().split()) - 2
 
@@ -319,7 +316,7 @@ if __name__ == '__main__':
 		help='run only specified sub-tasks (specify only one dataset when using this option)', type=int)
 	parser.add_argument('--condition', dest='condition',
 		help='condition on SNP {snp_id}', action='store', nargs=1)
-	parser.add_argument('--rerun', dest='jobs_to_rerun_filename', default=''
+	parser.add_argument('--rerun', dest='jobs_to_rerun_filename', default='',
 		help='file name containing list of process/job numbers to run', action = 'store')
 
 
@@ -341,7 +338,6 @@ if __name__ == '__main__':
 	debug = args.debug
 	tasks = args.tasks
 	condition = args.condition
-	group_size = args.group_size
 	jobs_to_rerun_filename = args.jobs_to_rerun_filename
 
 
@@ -375,12 +371,11 @@ if __name__ == '__main__':
 		condition = condition[0]
 
 	# check_prefixes(dataLoc, dataset)
-	squid_archive = dataset + '.tar'
+	squid_archive = 'fastlmm_' + dataset + '.tar'
 	params.update({
 		'root': root,
 		'dataLoc': dataLoc,
 		'dataset': dataset,
-		'group_size': group_size,
 		'offset': 0,
 		'job_output': os.path.join(job_output_root, dataset),
 		'condor_output': os.path.join(condor_output_root, dataset),
